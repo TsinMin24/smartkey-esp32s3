@@ -94,6 +94,9 @@ class SmartKeyUI:
     def _build(self):
         scr = lv.screen_active()
         scr.set_style_bg_color(lv.color_hex(COL_BG), 0)
+        # 关掉 LVGL 默认滚动（子对象越界时会显示可拖动的滚动条）
+        scr.remove_flag(lv.obj.FLAG.SCROLLABLE)
+        scr.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
 
         # 顶部状态条
         self._status = lv.obj(scr)
@@ -112,6 +115,8 @@ class SmartKeyUI:
         self._icon_dims = [None] * 5
         for i in range(5):
             s = lv.obj(scr)
+            s.remove_flag(lv.obj.FLAG.SCROLLABLE)
+            s.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
             s.set_pos(SLOT_X, SLOT_Y0 + i * SLOT_GAP)
             s.set_size(SLOT_W, SLOT_H)
             s.set_style_bg_color(lv.color_hex(COL_SLOT), 0)
@@ -130,6 +135,8 @@ class SmartKeyUI:
 
             # 名字 caption：固定尺寸的容器 + 居中 label（避免 label 自动缩放干扰布局）
             cap = lv.obj(s)
+            cap.remove_flag(lv.obj.FLAG.SCROLLABLE)
+            cap.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
             cap.set_size(SLOT_W, 16)
             cap.set_pos(SLOT_X, SLOT_Y0 + i * SLOT_GAP + SLOT_H - 16 - 1)
             cap.set_style_bg_color(lv.color_hex(COL_SLOT), 0)

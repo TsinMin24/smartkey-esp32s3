@@ -107,8 +107,8 @@ def run():
 # 避免脚本退出导致屏幕冻结在最后一帧（配合看门狗双保险）
 try:
     run()
-except Exception:
+except Exception as e:
     print("FATAL: main loop exception, rebooting...")
-    sys.print_exception(sys.exc_info()[1])
+    sys.print_exception(e)
     time.sleep_ms(1000)
     machine.reset()
