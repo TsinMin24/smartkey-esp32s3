@@ -24,17 +24,16 @@ SLOT_X = 10
 SLOT_Y0 = 14
 SLOT_GAP = 54
 BORDER = 2
-NAME_BAR_H = 16
 
-# 图标显示区：槽位内容区内、名字条上方（避免与名字重叠）
+# 图标显示区：槽位内容区（去掉 2px 边框，保留选中描边可见）
 ICON_AREA_X = SLOT_X + BORDER
 ICON_AREA_Y0 = SLOT_Y0 + BORDER
 ICON_AREA_W = SLOT_W - BORDER * 2
-ICON_AREA_H = SLOT_H - BORDER * 2 - NAME_BAR_H
+ICON_AREA_H = SLOT_H - BORDER * 2
 
-# 默认图标尺寸（与上位机 IconEncoder.size 保持一致）
-DEFAULT_ICON_W = 20
-DEFAULT_ICON_H = 20
+# 默认图标尺寸（与上位机 IconEncoder.size 保持一致，占满槽位）
+DEFAULT_ICON_W = 40
+DEFAULT_ICON_H = 40
 
 # ---------------- 颜色 ----------------
 COL_BG = 0x101418
@@ -125,8 +124,6 @@ class SmartKeyUI:
 
         self._slots = []
         self._icons = []        # 默认符号 label（槽位子对象，canvas 隐藏时可见）
-        self._caps = []         # 名字 caption 条（屏幕级，创建在 canvas 之后 → 最上层）
-        self._names = []        # 名字 label（caption 子对象）
         self._icon_canvases = [None] * 5
         self._icon_bufs = [None] * 5
         self._icon_dims = [None] * 5
@@ -168,29 +165,11 @@ class SmartKeyUI:
             self._icon_bufs[i] = buf
             self._icon_dims[i] = (DEFAULT_ICON_W, DEFAULT_ICON_H)
 
-            # 名字 caption 条（屏幕级，canvas 之后创建 → 永远盖在图标下缘）
-            cap = lv.obj(scr)
-            cap.remove_flag(lv.obj.FLAG.SCROLLABLE)
-            cap.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-            cap.set_size(SLOT_W, NAME_BAR_H)
-            cap.set_pos(SLOT_X, slot_y + SLOT_H - NAME_BAR_H - 1)
-            cap.set_style_bg_color(lv.color_hex(COL_SLOT), 0)
-            cap.set_style_border_width(0, 0)
-            cap.set_style_radius(0, 0)
-            nm = lv.label(cap)
-            nm.set_pos(0, 0)
-            nm.set_size(SLOT_W, NAME_BAR_H)
-            nm.set_style_text_color(lv.color_hex(COL_NAME), 0)
-            nm.set_style_text_font(lv.font_montserrat_12, 0)
-            nm.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
-            self._caps.append(cap)
-            self._names.append(nm)
-
         self.set_selected(0)
 
     @staticmethod
     def _icon_pos(i, w, h):
-        """图标显示区内的绝对坐标（屏幕级 canvas 用；不重叠名字条）"""
+        """图标显示区内的绝对坐标（屏幕级 canvas 用）"""
         x = ICON_AREA_X + (ICON_AREA_W - w) // 2
         y = ICON_AREA_Y0 + i * SLOT_GAP + (ICON_AREA_H - h) // 2
         return x, y
@@ -219,7 +198,8 @@ class SmartKeyUI:
         self._icons[i].set_text(symbol)
 
     def set_name(self, i, name):
-        self._names[i].set_text(name)
+        # 名称已取消（logo 占满槽位），保留空实现兼容 SLOT 指令
+        pass
 
     def set_icon_bitmap(self, i, w, h, fg565, bg565, mask):
         """BLE 同步图标：2 色掩码 → RGB565 缓冲 → 屏幕级 canvas 渲染"""
@@ -240,8 +220,6 @@ class SmartKeyUI:
             self._icon_canvases[i] = cv
             self._icon_bufs[i] = buf
             self._icon_dims[i] = (w, h)
-            # 重建后确保名字条仍在最上层
-            self._caps[i].move_foreground()
 
         buf = self._icon_bufs[i]
         pixels = w * h
