@@ -26,7 +26,8 @@ enum IconEncoder {
             data: nil, width: s, height: s,
             bitsPerComponent: 8, bytesPerRow: s * 4,
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return nil }
         ctx.interpolationQuality = .high
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: s, height: s))
