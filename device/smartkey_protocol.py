@@ -56,6 +56,8 @@ class Protocol:
                 pass
         elif line.startswith("ICON,"):
             self._handle_icon(line)
+        elif line.startswith("ICONRGB,"):
+            self._handle_icon_rgb(line)
 
     # ---------------- ICON 图标同步（2 色掩码 + CRC16） ----------------
     @staticmethod
@@ -93,6 +95,30 @@ class Protocol:
             fg = int(fg_s, 16) & 0xFFFF
             bg = int(bg_s, 16) & 0xFFFF
             self._ui.set_icon_bitmap(slot - 1, w, h, fg, bg, mask)
+            self._send("OK")
+        except Exception:
+            pass
+
+    def _handle_icon_rgb(self, line):
+        """全色图标格式: ICONRGB,<slot>,<w>,<h>,<crc16hex>,<hexRGB565像素>"""
+        try:
+            parts = line.split(",")
+            if len(parts) != 6:
+                return
+            _, slot_s, w_s, h_s, crc_s, hex_px = parts
+            slot = int(slot_s)
+            w = int(w_s)
+            h = int(h_s)
+            if not (1 <= slot <= 5 and 1 <= w <= 64 and 1 <= h <= 64 and w * h <= 4096):
+                return
+            pixels = bytes.fromhex(hex_px)
+            if len(pixels) != w * h * 2:
+                self._send("ERR_CRC")
+                return
+            if self._crc16(pixels) != (int(crc_s, 16) & 0xFFFF):
+                self._send("ERR_CRC")
+                return
+            self._ui.set_icon_bitmap_rgb(slot - 1, w, h, pixels)
             self._send("OK")
         except Exception:
             pass

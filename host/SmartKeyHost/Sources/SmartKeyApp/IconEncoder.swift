@@ -106,33 +106,4 @@ enum IconEncoder {
         return d
     }
 
-    /// RGB565 全色位图 → 2 色掩码（1bit/像素）+ 前景/背景色
-    /// 与板端 ICON 消息格式一致：fg565/bg565 + 位掩码（MSB 在前）
-    static func twoColor(from rgb565: Data) -> (mask: Data, fg: UInt16, bg: UInt16)? {
-        let count = size * size
-        guard rgb565.count >= count * 2 else { return nil }
-        var freq: [UInt16: Int] = [:]
-        for i in 0..<count {
-            let c = UInt16(rgb565[i * 2]) | UInt16(rgb565[i * 2 + 1]) << 8
-            freq[c, default: 0] += 1
-        }
-        // 背景 = 出现最多的颜色
-        guard let bg = freq.max(by: { $0.value < $1.value })?.key else { return nil }
-        // 前景 = 与背景不同的颜色里出现最多的
-        var fg = bg
-        var fgCount = 0
-        for (c, n) in freq where c != bg && n > fgCount {
-            fg = c
-            fgCount = n
-        }
-        if fg == bg { fg = (bg == 0xFFFF) ? 0x0000 : 0xFFFF }  // 单色兜底
-        var mask = Data(count: (count + 7) / 8)
-        for i in 0..<count {
-            let c = UInt16(rgb565[i * 2]) | UInt16(rgb565[i * 2 + 1]) << 8
-            if c != bg {
-                mask[i / 8] |= UInt8(0x80 >> (i % 8))
-            }
-        }
-        return (mask, fg, bg)
-    }
 }

@@ -411,12 +411,14 @@ final class DashboardViewModel: ObservableObject {
         } else {
             rgbData = IconEncoder.keyIcon()
         }
-        guard let data = rgbData, let two = IconEncoder.twoColor(from: data) else {
+        guard let data = rgbData else {
             appendLog("❌ slot\(slotId) 图标生成失败")
             return false
         }
-        transport.send(data: HostCommand.iconMessage(slot: slotId, fg565: two.fg, bg565: two.bg, mask: two.mask))
-        appendLog("  ✅ slot\(slotId) ICON 已发送（\(two.mask.count)B 掩码）")
+        transport.send(data: HostCommand.iconRGBMessage(
+            slot: slotId, w: IconEncoder.size, h: IconEncoder.size, rgb565: data
+        ))
+        appendLog("  ✅ slot\(slotId) ICONRGB 已发送（\(data.count)B 全色）")
         return true
     }
 

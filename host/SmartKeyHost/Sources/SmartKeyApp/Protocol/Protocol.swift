@@ -35,6 +35,15 @@ enum HostCommand {
         return Data((head + hexMask + "\n").utf8)
     }
 
+    /// 全色 ICON：RGB565 原始像素直传（40x40 ≈ 6.4KB，设备端自动拼行）
+    /// 格式: ICONRGB,<slot>,<w>,<h>,<crc16hex>,<hexRGB565>\n
+    static func iconRGBMessage(slot: Int, w: Int, h: Int, rgb565: Data) -> Data {
+        let crc = crc16(rgb565)
+        let hex = rgb565.map { String(format: "%02X", $0) }.joined()
+        let head = "ICONRGB,\(slot),\(w),\(h),\(String(format: "%04X", crc)),"
+        return Data((head + hex + "\n").utf8)
+    }
+
     /// CRC16-CCITT：与板子校验一致，坏数据会被板子拒绝
     static func crc16(_ data: Data) -> UInt16 {
         var crc: UInt16 = 0xFFFF

@@ -59,7 +59,8 @@ class SmartKeyBLE:
         (
             (self._key_handle, self._status_handle, self._ctrl_handle),
         ) = self._ble.gatts_register_services((_SERVICE,))
-        self._ble.gatts_set_buffer(self._ctrl_handle, 512, True)
+        # 全色图标 ICONRGB 单条最长约 6.5KB，放大 CONTROL 缓冲
+        self._ble.gatts_set_buffer(self._ctrl_handle, 8192, True)
         self._ble.gatts_write(self._status_handle, b"READY")
         # 预构建广播数据：IRQ 里直接复用，避免中断回调中分配内存
         self._adv_data, self._adv_resp = self._build_adv()
@@ -100,12 +101,12 @@ class SmartKeyBLE:
             if value_handle == self._ctrl_handle:
                 value = self._ble.gatts_read(self._ctrl_handle)
                 # 保护：异常超长写入直接丢弃（防止缓冲被撑爆）
-                if len(value) > 512:
+                if len(value) > 8192:
                     return
                 # 跨包拼行：一条完整命令可能被拆成多次 GATT 写入
                 self._line_buf += value
-                if len(self._line_buf) > 1024:  # 防异常堆积，只保留尾部
-                    self._line_buf = self._line_buf[-512:]
+                if len(self._line_buf) > 8192:  # 防异常堆积，只保留尾部
+                    self._line_buf = self._line_buf[-8192:]
                 lines = []
                 while True:
                     nl = self._line_buf.find(b"\n")

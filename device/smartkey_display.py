@@ -230,3 +230,28 @@ class SmartKeyUI:
         cv.remove_flag(lv.obj.FLAG.HIDDEN)  # 显示位图图标
         cv.invalidate()
         self._icons[i].set_text(" ")  # 隐藏默认符号
+
+    def set_icon_bitmap_rgb(self, i, w, h, pixels):
+        """BLE 全色图标：RGB565 原始像素直接写入 canvas 缓冲"""
+        if not (0 <= i < 5):
+            return
+        cv = self._icon_canvases[i]
+        if cv is None or self._icon_dims[i] != (w, h):
+            # 尺寸与预建不同才重建（屏幕级，避免嵌套渲染 bug）
+            if cv is not None:
+                cv.delete()
+            buf = bytearray(w * h * 2)
+            cv = lv.canvas(lv.screen_active())
+            cv.set_buffer(buf, w, h, lv.COLOR_FORMAT.RGB565)
+            cv.set_size(w, h)
+            cv.set_pos(*self._icon_pos(i, w, h))
+            cv.remove_flag(lv.obj.FLAG.SCROLLABLE)
+            cv.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
+            self._icon_canvases[i] = cv
+            self._icon_bufs[i] = buf
+            self._icon_dims[i] = (w, h)
+        buf = self._icon_bufs[i]
+        buf[:] = pixels  # 全色 RGB565（小端 = LVGL 原生顺序）
+        cv.remove_flag(lv.obj.FLAG.HIDDEN)
+        cv.invalidate()
+        self._icons[i].set_text(" ")  # 隐藏默认符号
