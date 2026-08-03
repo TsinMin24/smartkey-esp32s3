@@ -128,16 +128,20 @@ class SmartKeyUI:
             ic.align(lv.ALIGN.TOP_MID, 0, 5)
             self._icons.append(ic)
 
-            nm = lv.label(s)
-            nm.set_text("")
+            # 名字 caption：固定尺寸的容器 + 居中 label（避免 label 自动缩放干扰布局）
+            cap = lv.obj(s)
+            cap.set_size(SLOT_W, 16)
+            cap.set_pos(SLOT_X, SLOT_Y0 + i * SLOT_GAP + SLOT_H - 16 - 1)
+            cap.set_style_bg_color(lv.color_hex(COL_SLOT), 0)
+            cap.set_style_border_width(0, 0)
+            cap.set_style_radius(0, 0)
+            # label 填满 caption，文本用 text_align 居中（不依赖对象对齐，杜绝漂移）
+            nm = lv.label(cap)
+            nm.set_pos(0, 0)
+            nm.set_size(SLOT_W, 16)
             nm.set_style_text_color(lv.color_hex(COL_NAME), 0)
             nm.set_style_text_font(lv.font_montserrat_12, 0)
-            # 名字做成底部 caption 条：不透明背景，压在 40x40 图标下缘
-            nm.set_style_bg_color(lv.color_hex(COL_SLOT), 0)
-            nm.set_style_bg_opa(lv.OPA.COVER, 0)
-            nm.set_style_pad_top(1, 0)
-            nm.set_style_pad_bottom(1, 0)
-            nm.align(lv.ALIGN.BOTTOM_MID, 0, -3)
+            nm.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
             self._names.append(nm)
 
         self.set_selected(0)
@@ -184,7 +188,7 @@ class SmartKeyUI:
             self._icon_bufs[i] = buf
             self._icon_dims[i] = (w, h)
             self._icons[i].set_text(" ")  # 有真实图标后隐藏默认符号
-            self._names[i].move_foreground()  # 名字 caption 条压在图标上
+            cv.move_background()  # canvas 沉底，名字 caption 条永远盖在图标上
         # 直接写 RGB565（小端 = LVGL 原生顺序），比逐像素 set_px 快且避开绑定差异
         buf = self._icon_bufs[i]
         pixels = w * h
