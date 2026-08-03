@@ -380,7 +380,7 @@ final class DashboardViewModel: ObservableObject {
             return
         }
         if sendIcon(slot.id) {
-            appendLog("📤 已发送 ICON 槽位\(slot.id)（板端图标渲染待实现）")
+            appendLog("📤 已发送 ICON 槽位\(slot.id)")
         }
     }
 

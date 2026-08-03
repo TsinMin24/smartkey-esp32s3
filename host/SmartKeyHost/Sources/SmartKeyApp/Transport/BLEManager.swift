@@ -104,8 +104,9 @@ final class BLEManager: NSObject, DeviceTransportProtocol {
             connectionStateSubject.send(.error("未连接，无法发送"))
             return
         }
-        // 超过 MTU 分块（取保守 180，CONTROL 特征按值写入会分片）
-        let chunkSize = 180
+        // 按协商后的 MTU 分块（maximumWriteValueLength 反映真实单写上限，
+        // 40x40 图标 ~437B 可一包传完）
+        let chunkSize = max(20, peripheral.maximumWriteValueLength(for: .withResponse))
         if data.count <= chunkSize {
             peripheral.writeValue(data, for: ctrl, type: .withResponse)
             AppLog.log("send: \(data.count)B 写→control")

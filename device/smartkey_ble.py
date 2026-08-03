@@ -49,6 +49,7 @@ class SmartKeyBLE:
         self._on_conn = on_conn
         self._conn_handle = None
         self._in_lines = []
+        self._line_buf = bytearray()  # 跨包行缓冲（ICON 等长消息可能分片到达）
         self._name = name.encode()
         self._adv_interval_us = BLE_ADV_INTERVAL_MS * 1000
 
@@ -101,21 +102,26 @@ class SmartKeyBLE:
                 # 保护：异常超长写入直接丢弃（防止缓冲被撑爆）
                 if len(value) > 512:
                     return
-                lines = self._split_lines(value)
-                # 保护：消费端跟不上的时候丢弃最旧数据，避免内存无限增长
-                if len(self._in_lines) + len(lines) > 32:
-                    drop = len(self._in_lines) + len(lines) - 32
-                    self._in_lines = self._in_lines[drop:]
-                self._in_lines.extend(lines)
-
-    @staticmethod
-    def _split_lines(data):
-        lines = []
-        buf = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-        for ln in buf.split(b"\n"):
-            if ln:
-                lines.append(ln.decode("utf-8", "ignore"))
-        return lines
+                # 跨包拼行：一条完整命令可能被拆成多次 GATT 写入
+                self._line_buf += value
+                if len(self._line_buf) > 1024:  # 防异常堆积，只保留尾部
+                    self._line_buf = self._line_buf[-512:]
+                lines = []
+                while True:
+                    nl = self._line_buf.find(b"\n")
+                    if nl < 0:
+                        break
+                    line = self._line_buf[:nl]
+                    self._line_buf = self._line_buf[nl + 1:]
+                    line = line.strip()
+                    if line:
+                        lines.append(line.decode("utf-8", "ignore"))
+                if lines:
+                    # 保护：消费端跟不上的时候丢弃最旧数据，避免内存无限增长
+                    if len(self._in_lines) + len(lines) > 32:
+                        drop = len(self._in_lines) + len(lines) - 32
+                        self._in_lines = self._in_lines[drop:]
+                    self._in_lines.extend(lines)
 
     # ---------- transport 接口（smartkey_protocol 约定） ----------
     def write(self, line):

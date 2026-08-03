@@ -107,6 +107,9 @@ class SmartKeyUI:
         self._slots = []
         self._icons = []
         self._names = []
+        self._icon_canvases = [None] * 5
+        self._icon_bufs = [None] * 5
+        self._icon_dims = [None] * 5
         for i in range(5):
             s = lv.obj(scr)
             s.set_pos(SLOT_X, SLOT_Y0 + i * SLOT_GAP)
@@ -129,6 +132,11 @@ class SmartKeyUI:
             nm.set_text("")
             nm.set_style_text_color(lv.color_hex(COL_NAME), 0)
             nm.set_style_text_font(lv.font_montserrat_12, 0)
+            # 名字做成底部 caption 条：不透明背景，压在 40x40 图标下缘
+            nm.set_style_bg_color(lv.color_hex(COL_SLOT), 0)
+            nm.set_style_bg_opa(lv.OPA.COVER, 0)
+            nm.set_style_pad_top(1, 0)
+            nm.set_style_pad_bottom(1, 0)
             nm.align(lv.ALIGN.BOTTOM_MID, 0, -3)
             self._names.append(nm)
 
@@ -155,3 +163,33 @@ class SmartKeyUI:
 
     def set_name(self, i, name):
         self._names[i].set_text(name)
+
+    def set_icon_bitmap(self, i, w, h, fg565, bg565, mask):
+        """BLE 同步图标：2 色掩码（1bit/像素，MSB 在前）→ RGB565 buffer → canvas 渲染"""
+        if not (0 <= i < 5):
+            return
+        s = self._slots[i]
+        cv = self._icon_canvases[i]
+        if cv is None or self._icon_dims[i] != (w, h):
+            if cv is not None:
+                cv.delete()
+            buf = bytearray(w * h * 2)
+            cv = lv.canvas(s)
+            cv.set_buffer(buf, w, h, lv.COLOR_FORMAT.RGB565)
+            cv.set_pos(SLOT_X + (SLOT_W - w) // 2, SLOT_Y0 + i * SLOT_GAP + (SLOT_H - h) // 2)
+            cv.set_style_border_width(0, 0)
+            cv.set_style_radius(0, 0)
+            cv.set_style_pad_all(0, 0)
+            self._icon_canvases[i] = cv
+            self._icon_bufs[i] = buf
+            self._icon_dims[i] = (w, h)
+            self._icons[i].set_text(" ")  # 有真实图标后隐藏默认符号
+            self._names[i].move_foreground()  # 名字 caption 条压在图标上
+        # 直接写 RGB565（小端 = LVGL 原生顺序），比逐像素 set_px 快且避开绑定差异
+        buf = self._icon_bufs[i]
+        pixels = w * h
+        for p in range(pixels):
+            c = fg565 if mask[p >> 3] & (0x80 >> (p & 7)) else bg565
+            buf[p * 2] = c & 0xFF
+            buf[p * 2 + 1] = c >> 8
+        cv.invalidate()

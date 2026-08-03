@@ -6,7 +6,7 @@ import AppKit
 import CoreGraphics
 
 enum IconEncoder {
-    static let size = 16
+    static let size = 40
 
     /// 提取 App 图标 → RGB565 原始像素（16×16×2 = 512B）
     static func encode(appPath: String) -> Data? {
@@ -57,15 +57,25 @@ enum IconEncoder {
         return d
     }
 
-    /// 功能键图标：橙色圆角方块 + 白色 F（RGB565）
+    /// 功能键图标：橙色圆角方块 + 白色 F（RGB565），随 size 缩放
     static func keyIcon() -> Data {
-        let s = size  // 16
+        let s = size  // 40
         let orange: UInt16 = 0xFD20
         let white: UInt16 = 0xFFFF
         let bg: UInt16 = 0x10A2
         var d = Data(count: s * s * 2)
-        let margin = 1, radius = 2
-        let frame = s - margin * 2  // 14
+        let margin = max(2, s / 10)   // 4
+        let radius = max(3, s / 10)   // 4
+        let frame = s - margin * 2    // 32
+        // F 字形参数（按 size 缩放）
+        let stemW = max(3, s / 7)     // 竖线宽
+        let barH = stemW              // 横线高
+        let topW = s * 2 / 3          // 上横长
+        let midW = s / 2              // 中横长
+        let x0 = margin + frame / 5
+        let y0 = margin + frame / 5
+        let fMid = y0 + frame * 2 / 5
+        let fBottom = y0 + frame * 3 / 5
         for y in 0..<s {
             for x in 0..<s {
                 var color = bg
@@ -83,12 +93,10 @@ enum IconEncoder {
                         inside = (mx-frame+radius)*(mx-frame+radius)+(my-frame+radius)*(my-frame+radius) <= radius*radius
                     }
                     if inside {
-                        // F键：竖线 + 上横 + 中横
-                        let lx = mx - 3, ly = my - 2
-                        let stem = (lx >= 0 && lx <= 2)
-                        let top  = (ly >= 0 && ly <= 2 && lx >= 0 && lx <= 8)
-                        let mid  = (ly >= 5 && ly <= 7 && lx >= 0 && lx <= 6)
-                        color = (stem || top || mid) ? white : orange
+                        let inStem = x >= x0 && x < x0 + stemW && y >= y0 && y < fBottom
+                        let inTop  = y >= y0 && y < y0 + barH && x >= x0 && x < x0 + topW
+                        let inMid  = y >= fMid && y < fMid + barH && x >= x0 && x < x0 + midW
+                        color = (inStem || inTop || inMid) ? white : orange
                     }
                 }
                 let idx = (y * s + x) * 2
