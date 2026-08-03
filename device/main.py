@@ -18,6 +18,9 @@ from smartkey_protocol import Protocol
 WDT_TIMEOUT_MS = 20_000
 wdt = machine.WDT(timeout=WDT_TIMEOUT_MS)
 
+# 降频省电：80MHz 对本 UI 完全够用，电流显著下降（此板供电偏弱）
+machine.freq(80_000_000)
+
 
 def run():
     try:

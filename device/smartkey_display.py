@@ -92,16 +92,33 @@ class SmartKeyUI:
             backlight_on_state=st7789.STATE_LOW,
             offset_x=OFFSET_X,
             offset_y=OFFSET_Y,
-            color_space=lv.COLOR_FORMAT.RGB565,
-            rgb565_byte_swap=True,
+            # 实测（最小初始化 + 原始像素直写）：面板按【大端】读 RGB565，
+            # 且 MADCTL 不设 BGR 时颜色正确（右半屏大端 0xF800 = 红）。
+            # LVGL 原生是小端 → 用 RGB565_SWAPPED 让缓冲区直接是大端字节。
+            color_space=lv.COLOR_FORMAT.RGB565_SWAPPED,
+            color_byte_order=st7789.BYTE_ORDER_RGB,
+            rgb565_byte_swap=False,
         )
         self._display.set_power(True)
         self._display.init()
+        # 实测：这块 76x284 面板不兼容驱动的完整 init 序列（INVON 反相 +
+        # 额外寄存器导致红蓝互换），最小初始化 + 大端字节时颜色完全正确。
+        # 因此 init 后立即软复位，只发最少的必需命令。
+        self._display.set_params(0x01, None)  # SWRESET
+        time.sleep_ms(150)
+        self._display.set_params(0x11, None)  # SLPOUT
+        time.sleep_ms(120)
+        self._display.set_params(0x36, bytearray([0x00]))  # MADCTL = RGB
+        self._display.set_params(0x3A, bytearray([0x55]))  # COLMOD = RGB565
+        self._display.set_params(0x29, None)  # DISPON
+        time.sleep_ms(50)
+        print("MINIMAL_INIT_FALLBACK_OK")
         # 背光：PWM 限流，约 30% 亮度（低电平点亮，duty 反向）
         self._backlight = machine.PWM(
             machine.Pin(PIN_BL, machine.Pin.OUT), freq=38_000
         )
         self.set_backlight(BRIGHTNESS)
+        print("COLOR_FIX_SWAPPED_RGB_MINIMAL_OK")
 
     def set_backlight(self, brightness):
         """brightness: 0.0 ~ 1.0"""

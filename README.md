@@ -87,6 +87,11 @@ python host/host_ble.py --status 00FF00 # 状态条变绿
 
 - ST7789 驱动框架不会自动释放屏幕 RST 脚、低电平背光有误判，
   `smartkey_display.py` 已手动处理。
+- **颜色修复（76×284 ST7789P3 实测）**：该面板按大端读 RGB565，且不兼容
+  驱动默认完整 init 序列（INVON 反相 + 寄存器导致红蓝互换）。当前配置：
+  `color_space=RGB565_SWAPPED`（LVGL 直接产出大端字节）、
+  `color_byte_order=RGB`（不设 BGR），并在 `init()` 后软复位走最小初始化
+  （SWRESET/SLPOUT/MADCTL=0/COLMOD=0x55/DISPON）。
 - **此固件的 `gatts_write` 不接受关键字参数**：必须写
   `gatts_write(handle, data, True)`（`send_update=True` 会抛 TypeError，
   曾导致按键时主程序崩溃、上位机收不到事件）。
