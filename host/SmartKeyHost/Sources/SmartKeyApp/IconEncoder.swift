@@ -6,7 +6,7 @@ import AppKit
 import CoreGraphics
 
 enum IconEncoder {
-    static let size = 40
+    static let size = 20
 
     /// 提取 App 图标 → RGB565 原始像素（16×16×2 = 512B）
     static func encode(appPath: String) -> Data? {
